@@ -5,6 +5,11 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const logger = require('./utils/logger');
 
+// --- Swagger UI setup ---
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./openapi.yaml');
+// ------------------------
 
 const app = express();
 
@@ -16,6 +21,14 @@ app.use((req, res, next) => {
   logger.info('%s %s', req.method, req.originalUrl);
   next();
 });
+
+app.get('/', (req, res) => {
+  res.send('API is running. See /api-docs for documentation.');
+});
+
+// --- Swagger docs route ---
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// --------------------------
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);

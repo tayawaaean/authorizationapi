@@ -1,0 +1,325 @@
+openapi: 3.0.3
+info:
+  title: User Authentication & Admin API
+  description: Secure authentication system with admin approval, session management, and robust password reset.
+  version: 1.0.0
+servers:
+  - url: https://api.yourdomain.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Auth
+    description: User authentication and session management
+  - name: Admin
+    description: Admin-only user management
+
+paths:
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password, tosAccepted, recaptcha, age]
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                  format: password
+                age:
+                  type: integer
+                tosAccepted:
+                  type: boolean
+                recaptcha:
+                  type: string
+      responses:
+        200:
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+        400:
+          description: Validation error
+
+  /api/auth/verify-email:
+    get:
+      tags: [Auth]
+      summary: Verify user email
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+        400:
+          description: Invalid or expired token
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      email:
+                        type: string
+                      usertype:
+                        type: string
+        400:
+          description: Invalid credentials
+
+  /api/auth/refresh-token:
+    post:
+      tags: [Auth]
+      summary: Refresh JWT tokens
+      responses:
+        200:
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        401:
+          description: Invalid refresh token
+
+  /api/auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        200:
+          description: Generic response for reset request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+
+  /api/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        200:
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+        400:
+          description: Invalid or expired token
+        429:
+          description: Too many attempts
+
+  /api/auth/sessions:
+    get:
+      tags: [Auth]
+      summary: List all active sessions/devices
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        refreshTokenId:
+                          type: string
+                        userAgent:
+                          type: string
+                        ip:
+                          type: string
+                        geolocation:
+                          type: object
+                        createdAt:
+                          type: string
+                          format: date-time
+                        lastUsedAt:
+                          type: string
+                          format: date-time
+                        expiresAt:
+                          type: string
+                          format: date-time
+
+  /api/auth/revoke-session:
+    post:
+      tags: [Auth]
+      summary: Revoke a session/device by refresh token id
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshTokenId]
+              properties:
+                refreshTokenId:
+                  type: string
+      responses:
+        200:
+          description: Session revoked
+        401:
+          description: Unauthorized
+
+  /api/admin/pending-users:
+    get:
+      tags: [Admin]
+      summary: List users with pending status
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: List of pending users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    email:
+                      type: string
+                    username:
+                      type: string
+
+  /api/admin/approve-user:
+    post:
+      tags: [Admin]
+      summary: Approve a pending user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+      responses:
+        200:
+          description: User approved
+
+  /api/admin/reject-user:
+    post:
+      tags: [Admin]
+      summary: Reject a pending user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+      responses:
+        200:
+          description: User rejected
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
